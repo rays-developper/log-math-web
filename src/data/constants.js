@@ -178,6 +178,23 @@ export const LOG_CONSTANTS = [
   { id: 'n6', name: 'アボガドロ数', value: 23.78, accuracy: 'exact', category: 'Population', description: 'log₁₀(6×10²³) = 23.778', memo: '1molあたりの粒子数' },
   
   // ==========================================
+  // 確率・指数関数 (eの世界)
+  // ==========================================
+  { id: 'prob1', name: 'e (自然対数の底)', value: 0.43, accuracy: 'down', category: 'Probability', description: 'log₁₀(2.718) = 0.434', memo: '🔑 log₁₀(e) ≈ 0.43、確率計算の核心' },
+  { id: 'prob2', name: 'log₁₀(e)', value: 0.43, accuracy: 'down', category: 'Probability', description: 'log₁₀(e) = 0.4343', memo: '🔑 ln(x) を log₁₀(x) に変換: ×0.43' },
+  { id: 'prob3', name: 'ln(10) = 1/log₁₀(e)', value: 2.30, accuracy: 'down', category: 'Probability', description: 'ln(10) = 2.303', memo: '🔑 log₁₀(x) を ln(x) に変換: ×2.3' },
+  { id: 'prob4', name: '1/e ≈ 0.37', value: -0.43, accuracy: 'up', category: 'Probability', description: 'log₁₀(1/e) = -0.434', memo: '🔑 n回中「1回も当たらない」確率' },
+  { id: 'prob5', name: '1-1/e ≈ 0.63', value: -0.20, accuracy: 'exact', category: 'Probability', description: 'log₁₀(0.632) = -0.199', memo: '🔑 n回中「少なくとも1回当たる」確率' },
+  { id: 'prob6', name: 'ln(2) ≈ 0.69', value: -0.16, accuracy: 'exact', category: 'Probability', description: 'log₁₀(0.693) = -0.159', memo: '🔑 50%になる回数の係数' },
+  { id: 'prob7', name: '1%ガチャを50%で引く回数', value: 1.84, accuracy: 'down', category: 'Probability', description: 'log₁₀(69) = 1.839', memo: 'ln(2)/0.01 ≈ 69回' },
+  { id: 'prob8', name: '1%ガチャを63%で引く回数', value: 2.00, accuracy: 'exact', category: 'Probability', description: 'log₁₀(100) = 2.00', memo: '1/p = 100回で約63%' },
+  { id: 'prob9', name: '1%ガチャを95%で引く回数', value: 2.48, accuracy: 'down', category: 'Probability', description: 'log₁₀(300) = 2.477', memo: 'ln(20)/0.01 ≈ 300回（3倍が目安）' },
+  { id: 'prob10', name: '0.1%ガチャを50%で引く回数', value: 2.84, accuracy: 'down', category: 'Probability', description: 'log₁₀(693) = 2.841', memo: 'ln(2)/0.001 ≈ 693回' },
+  { id: 'prob11', name: '誕生日問題 23人', value: 1.36, accuracy: 'exact', category: 'Probability', description: 'log₁₀(23) = 1.362', memo: '50%で同じ誕生日のペア発生' },
+  { id: 'prob12', name: '誕生日問題 50人', value: 1.70, accuracy: 'exact', category: 'Probability', description: 'log₁₀(50) = 1.699', memo: '97%で同じ誕生日のペア発生' },
+  { id: 'prob13', name: '√365 ≈ 19', value: 1.28, accuracy: 'exact', category: 'Probability', description: 'log₁₀(19) = 1.279', memo: '誕生日問題の目安人数' },
+  
+  // ==========================================
   // 物理定数
   // ==========================================
   { id: 'p1', name: '重力加速度 g (10 m/s²)', value: 1.00, accuracy: 'exact', category: 'Physics', description: 'log₁₀(10) = 1.00', memo: '🔑 正確には9.8' },
@@ -212,6 +229,7 @@ export const LOG_CONSTANTS = [
 export const CATEGORIES = [
   { id: 'all', name: 'すべて', color: 'gray', icon: '📋' },
   { id: 'Math', name: '数学', color: 'blue', icon: '🔢' },
+  { id: 'Probability', name: '確率・e', color: 'rose', icon: '🎲' },
   { id: 'Time', name: '時間', color: 'green', icon: '⏰' },
   { id: 'Speed', name: '速度', color: 'emerald', icon: '🚀' },
   { id: 'Distance', name: '距離', color: 'purple', icon: '📏' },
@@ -260,6 +278,36 @@ export const LOG_MAP = (() => {
       rowData.push({
         num: num.toFixed(1),
         log: rounded.toFixed(2),
+        accuracy
+      });
+    }
+    map.push(rowData);
+  }
+  return map;
+})();
+
+// 逆変換マップ (log値 → 元の数値) - 0.00〜0.99のlog値に対する10^xの値
+export const INVERSE_LOG_MAP = (() => {
+  const map = [];
+  // 10行 (0.0〜0.9) × 10列 (.00〜.09)
+  for (let row = 0; row < 10; row++) {
+    const rowData = [];
+    for (let col = 0; col < 10; col++) {
+      const logValue = row * 0.1 + col * 0.01;
+      const actualValue = Math.pow(10, logValue);
+      const rounded = Math.round(actualValue * 100) / 100;
+      
+      // 精度チェック
+      let accuracy = 'exact';
+      if (rounded > actualValue + 0.005) {
+        accuracy = 'up'; // 切り上げ
+      } else if (rounded < actualValue - 0.005) {
+        accuracy = 'down'; // 切り捨て
+      }
+      
+      rowData.push({
+        log: logValue.toFixed(2),
+        value: rounded.toFixed(2),
         accuracy
       });
     }

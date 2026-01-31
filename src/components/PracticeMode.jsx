@@ -81,8 +81,11 @@ const PracticeMode = () => {
       return;
     }
 
-    const difference = Math.abs(answer - currentProblem.targetLog);
+    const rawDifference = answer - currentProblem.targetLog; // 符号付き差分
+    const difference = Math.abs(rawDifference);
     const isCorrect = difference <= currentProblem.tolerance;
+    // パーセント誤差を計算 (log差分からパーセントへ: 10^diff - 1)
+    const percentError = Math.round((Math.pow(10, difference) - 1) * 100);
 
     if (isCorrect) {
       markProblemSolved(currentProblem.id);
@@ -90,12 +93,16 @@ const PracticeMode = () => {
         type: 'success',
         message: '正解です！',
         difference,
+        rawDifference,
+        percentError,
       });
     } else {
       setFeedback({
         type: 'wrong',
         message: `惜しい！正解は ${currentProblem.targetLog} です`,
         difference,
+        rawDifference,
+        percentError,
       });
     }
   };
@@ -459,7 +466,7 @@ const PracticeMode = () => {
                       {feedback.message}
                     </p>
                     <p className="text-green-700">
-                      誤差: ±{feedback.difference.toFixed(2)}
+                      {feedback.percentError}%の誤差 ({feedback.rawDifference >= 0 ? '+' : ''}{feedback.rawDifference.toFixed(2)})
                     </p>
                   </div>
                 </div>
@@ -473,7 +480,7 @@ const PracticeMode = () => {
                       {feedback.message}
                     </p>
                     <p className="text-red-700">
-                      あなたの回答: {userAnswer} (誤差: {feedback.difference.toFixed(2)})
+                      あなたの回答: {userAnswer} ({feedback.percentError}%の誤差 / {feedback.rawDifference >= 0 ? '+' : ''}{feedback.rawDifference.toFixed(2)})
                     </p>
                   </div>
                 </div>

@@ -1,10 +1,21 @@
-import { useState } from 'react';
-import { ChevronRight, ChevronLeft, BookOpen, Zap, MapPin, Timer, Cpu, Calculator, Rocket, History } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronRight, ChevronLeft, BookOpen, Zap, MapPin, Timer, Cpu, Calculator, Rocket, History, CheckCircle, Award, ArrowRight, RotateCcw, Dice6 } from 'lucide-react';
 import { LOG_MAP, getAccuracyColor, getAccuracyBgColor } from '../data/constants';
+import { useApp } from '../context/AppContext';
 
 const LearnMode = () => {
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showCompletion, setShowCompletion] = useState(false);
+  
+  const { 
+    markChapterCompleted, 
+    updateChapterProgress, 
+    isChapterCompleted, 
+    getLearningProgress,
+    userProgress,
+    setCurrentView,
+  } = useApp();
 
   // 章の定義
   const chapters = [
@@ -78,10 +89,27 @@ const LearnMode = () => {
       color: 'red',
       slides: unitSlides,
     },
+    {
+      id: 'probability',
+      title: '確率とe',
+      icon: <Dice6 size={24} />,
+      color: 'rose',
+      slides: probabilitySlides,
+    },
   ];
 
   const currentChapter = chapters.find(c => c.id === selectedChapter);
+  const currentChapterIndex = chapters.findIndex(c => c.id === selectedChapter);
+  const nextChapter = currentChapterIndex < chapters.length - 1 ? chapters[currentChapterIndex + 1] : null;
   const slides = currentChapter?.slides || [];
+  const learningProgress = getLearningProgress(chapters);
+
+  // スライド進捗を保存
+  useEffect(() => {
+    if (selectedChapter && slides.length > 0) {
+      updateChapterProgress(selectedChapter, currentSlide, slides.length);
+    }
+  }, [currentSlide, selectedChapter]);
 
   const nextSlide = () => {
     if (currentSlide < slides.length - 1) {
@@ -98,40 +126,156 @@ const LearnMode = () => {
   const selectChapter = (chapterId) => {
     setSelectedChapter(chapterId);
     setCurrentSlide(0);
+    setShowCompletion(false);
+  };
+
+  const completeChapter = () => {
+    markChapterCompleted(selectedChapter);
+    setShowCompletion(true);
+  };
+
+  const goToNextChapter = () => {
+    if (nextChapter) {
+      selectChapter(nextChapter.id);
+    }
+  };
+
+  // おすすめの次の章を取得
+  const getRecommendedChapters = () => {
+    return chapters.filter(c => !isChapterCompleted(c.id)).slice(0, 3);
   };
 
   // 章選択画面
   if (!selectedChapter) {
+    const recommendedChapters = getRecommendedChapters();
+    
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">学習モード</h2>
-        <p className="text-gray-600 mb-8">Log算の基礎から応用まで、段階的に学ぼう！</p>
+        <p className="text-gray-600 mb-4">Log算の基礎から応用まで、段階的に学ぼう！</p>
 
+        {/* 学習進捗バー */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <Award className="text-yellow-500" size={24} />
+              <span className="font-bold text-gray-800">学習進捗</span>
+            </div>
+            <span className="text-lg font-bold text-blue-600">
+              {learningProgress.completedCount} / {learningProgress.totalChapters} 章完了
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-4">
+            <div 
+              className="bg-gradient-to-r from-blue-500 to-purple-500 h-4 rounded-full transition-all duration-500"
+              style={{ width: `${learningProgress.percentage}%` }}
+            />
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            {learningProgress.percentage === 100 
+              ? '🎉 すべての章を完了しました！実戦モードで腕試ししましょう！'
+              : `あと ${learningProgress.totalChapters - learningProgress.completedCount} 章で全完了！`}
+          </p>
+        </div>
+
+        {/* おすすめの章 */}
+        {recommendedChapters.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center space-x-2">
+              <span>📚</span>
+              <span>おすすめの次の章</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {recommendedChapters.map((chapter, index) => (
+                <button
+                  key={chapter.id}
+                  onClick={() => selectChapter(chapter.id)}
+                  className={`p-5 rounded-xl shadow-lg text-left transition-all hover:scale-105 hover:shadow-xl relative overflow-hidden ${
+                    chapter.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                    chapter.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                    chapter.color === 'yellow' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
+                    chapter.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                    chapter.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                    chapter.color === 'cyan' ? 'bg-gradient-to-br from-cyan-500 to-cyan-600' :
+                    chapter.color === 'indigo' ? 'bg-gradient-to-br from-indigo-500 to-indigo-600' :
+                    chapter.color === 'emerald' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' :
+                    chapter.color === 'amber' ? 'bg-gradient-to-br from-amber-500 to-amber-600' :
+                    'bg-gradient-to-br from-red-500 to-red-600'
+                  } text-white`}
+                >
+                  {index === 0 && (
+                    <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full">
+                      おすすめ
+                    </div>
+                  )}
+                  <div className="mb-3">{chapter.icon}</div>
+                  <h3 className="text-lg font-bold mb-1">{chapter.title}</h3>
+                  <p className="text-white/80 text-sm">{chapter.slides.length} スライド</p>
+                  <div className="mt-3 flex items-center text-white/90 text-sm">
+                    <ArrowRight size={16} className="mr-1" />
+                    <span>学習を始める</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* すべての章 */}
+        <h3 className="text-xl font-bold text-gray-800 mb-4">すべての章</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {chapters.map((chapter) => (
-            <button
-              key={chapter.id}
-              onClick={() => selectChapter(chapter.id)}
-              className={`p-5 rounded-xl shadow-lg text-left transition-all hover:scale-105 hover:shadow-xl ${
-                chapter.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
-                chapter.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
-                chapter.color === 'yellow' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
-                chapter.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
-                chapter.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
-                chapter.color === 'cyan' ? 'bg-gradient-to-br from-cyan-500 to-cyan-600' :
-                chapter.color === 'indigo' ? 'bg-gradient-to-br from-indigo-500 to-indigo-600' :
-                chapter.color === 'emerald' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' :
-                chapter.color === 'amber' ? 'bg-gradient-to-br from-amber-500 to-amber-600' :
-                'bg-gradient-to-br from-red-500 to-red-600'
-              } text-white`}
-            >
-              <div className="mb-3">{chapter.icon}</div>
-              <h3 className="text-lg font-bold mb-1">{chapter.title}</h3>
-              <p className="text-white/80 text-sm">
-                {chapter.slides.length} スライド
-              </p>
-            </button>
-          ))}
+          {chapters.map((chapter) => {
+            const completed = isChapterCompleted(chapter.id);
+            const progress = userProgress.chapterProgress?.[chapter.id];
+            
+            return (
+              <button
+                key={chapter.id}
+                onClick={() => selectChapter(chapter.id)}
+                className={`p-5 rounded-xl shadow-lg text-left transition-all hover:scale-105 hover:shadow-xl relative ${
+                  chapter.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                  chapter.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                  chapter.color === 'yellow' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
+                  chapter.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                  chapter.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                  chapter.color === 'cyan' ? 'bg-gradient-to-br from-cyan-500 to-cyan-600' :
+                  chapter.color === 'indigo' ? 'bg-gradient-to-br from-indigo-500 to-indigo-600' :
+                  chapter.color === 'emerald' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' :
+                  chapter.color === 'amber' ? 'bg-gradient-to-br from-amber-500 to-amber-600' :
+                  'bg-gradient-to-br from-red-500 to-red-600'
+                } text-white`}
+              >
+                {completed && (
+                  <div className="absolute top-2 right-2">
+                    <CheckCircle size={24} className="text-white drop-shadow-lg" />
+                  </div>
+                )}
+                <div className="mb-3">{chapter.icon}</div>
+                <h3 className="text-lg font-bold mb-1">{chapter.title}</h3>
+                <p className="text-white/80 text-sm">
+                  {chapter.slides.length} スライド
+                </p>
+                {completed ? (
+                  <div className="mt-2 flex items-center text-green-200 text-sm">
+                    <CheckCircle size={14} className="mr-1" />
+                    <span>完了済み</span>
+                  </div>
+                ) : progress?.lastSlide !== undefined ? (
+                  <div className="mt-2">
+                    <div className="w-full bg-white/30 rounded-full h-1.5">
+                      <div 
+                        className="bg-white h-1.5 rounded-full"
+                        style={{ width: `${((progress.lastSlide + 1) / chapter.slides.length) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-white/70 text-xs mt-1">
+                      {progress.lastSlide + 1} / {chapter.slides.length} スライド
+                    </p>
+                  </div>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
 
         {/* クイックリファレンス */}
@@ -148,7 +292,119 @@ const LearnMode = () => {
     );
   }
 
+  // 章完了画面
+  if (showCompletion) {
+    const recommendedChapters = getRecommendedChapters();
+    
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+          <div className="mb-6">
+            <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle size={48} className="text-white" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">🎉 章を完了しました！</h2>
+            <p className="text-xl text-gray-600">{currentChapter?.title}</p>
+          </div>
+
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-center space-x-4">
+              <Award size={32} className="text-yellow-500" />
+              <div>
+                <p className="text-lg font-bold text-gray-800">学習進捗</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {learningProgress.completedCount} / {learningProgress.totalChapters} 章完了
+                </p>
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-4 mt-4">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-4 rounded-full transition-all duration-500"
+                style={{ width: `${learningProgress.percentage}%` }}
+              />
+            </div>
+          </div>
+
+          {/* 次のアクション */}
+          <div className="space-y-4">
+            {nextChapter && (
+              <button
+                onClick={goToNextChapter}
+                className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold text-lg hover:from-blue-600 hover:to-purple-600 transition-all"
+              >
+                <span>次の章へ進む: {nextChapter.title}</span>
+                <ArrowRight size={24} />
+              </button>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => {
+                  setCurrentSlide(0);
+                  setShowCompletion(false);
+                }}
+                className="flex items-center justify-center space-x-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                <RotateCcw size={20} />
+                <span>この章を復習</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedChapter(null)}
+                className="flex items-center justify-center space-x-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                <BookOpen size={20} />
+                <span>章選択に戻る</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setCurrentView('practice')}
+              className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-colors"
+            >
+              <Zap size={20} />
+              <span>実戦モードで腕試し</span>
+            </button>
+          </div>
+
+          {/* おすすめの章 */}
+          {recommendedChapters.length > 0 && !nextChapter && (
+            <div className="mt-8 pt-8 border-t border-gray-200">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">📚 おすすめの章</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {recommendedChapters.slice(0, 3).map((chapter) => (
+                  <button
+                    key={chapter.id}
+                    onClick={() => selectChapter(chapter.id)}
+                    className={`p-4 rounded-xl text-left transition-all hover:scale-105 ${
+                      chapter.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                      chapter.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                      chapter.color === 'yellow' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
+                      chapter.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                      chapter.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                      chapter.color === 'cyan' ? 'bg-gradient-to-br from-cyan-500 to-cyan-600' :
+                      chapter.color === 'indigo' ? 'bg-gradient-to-br from-indigo-500 to-indigo-600' :
+                      chapter.color === 'emerald' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' :
+                      chapter.color === 'amber' ? 'bg-gradient-to-br from-amber-500 to-amber-600' :
+                      'bg-gradient-to-br from-red-500 to-red-600'
+                    } text-white`}
+                  >
+                    <div className="text-sm">{chapter.icon}</div>
+                    <h4 className="font-bold">{chapter.title}</h4>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // スライド表示
+  const isLastSlide = currentSlide === slides.length - 1;
+  const isCompleted = isChapterCompleted(selectedChapter);
+  
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <button
@@ -160,9 +416,17 @@ const LearnMode = () => {
 
       <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
         <div className="mb-6">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">
-            {slides[currentSlide]?.title}
-          </h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-3xl font-bold text-gray-800">
+              {slides[currentSlide]?.title}
+            </h2>
+            {isCompleted && (
+              <div className="flex items-center text-green-600 text-sm">
+                <CheckCircle size={16} className="mr-1" />
+                <span>完了済み</span>
+              </div>
+            )}
+          </div>
           <div className="flex space-x-2">
             {slides.map((_, index) => (
               <button
@@ -170,7 +434,9 @@ const LearnMode = () => {
                 onClick={() => setCurrentSlide(index)}
                 className={`h-2 rounded-full transition-all ${
                   index === currentSlide
-                    ? 'bg-primary w-8'
+                    ? 'bg-blue-500 w-8'
+                    : index < currentSlide
+                    ? 'bg-blue-300 w-2 hover:bg-blue-400'
                     : 'bg-gray-300 w-2 hover:bg-gray-400'
                 }`}
               />
@@ -196,14 +462,23 @@ const LearnMode = () => {
             {currentSlide + 1} / {slides.length}
           </div>
 
-          <button
-            onClick={nextSlide}
-            disabled={currentSlide === slides.length - 1}
-            className="flex items-center space-x-2 px-6 py-3 rounded-lg bg-primary text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <span>次へ</span>
-            <ChevronRight size={20} />
-          </button>
+          {isLastSlide ? (
+            <button
+              onClick={completeChapter}
+              className="flex items-center space-x-2 px-6 py-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 transition-all font-bold"
+            >
+              <CheckCircle size={20} />
+              <span>{isCompleted ? '完了画面へ' : '章を完了する'}</span>
+            </button>
+          ) : (
+            <button
+              onClick={nextSlide}
+              className="flex items-center space-x-2 px-6 py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+            >
+              <span>次へ</span>
+              <ChevronRight size={20} />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -368,14 +643,14 @@ const basicSlides = [
           <ul className="list-disc list-inside space-y-2 text-gray-700">
             <li>巨大な数を扱いやすくする</li>
             <li>掛け算・割り算を足し算・引き算に変換</li>
+            <li>累乗・ルートも簡単に計算</li>
             <li>フェルミ推定を素早く行う</li>
-            <li>物理・IT・日常の計算を直感的に</li>
           </ul>
         </div>
         <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
           <p className="font-bold">💡 なぜLog算？</p>
           <p className="text-gray-700 mt-2">
-            「1年は何秒？」「1TBのデータ転送に何時間？」<br/>
+            「1年は何秒？」「地球の体積は？」<br/>
             こんな計算を暗算で即答できるようになります！
           </p>
         </div>
@@ -383,26 +658,166 @@ const basicSlides = [
     ),
   },
   {
-    title: '基本原理：掛け算は足し算に',
+    title: '基本原理：4つの計算ルール',
     content: (
       <div className="space-y-4">
         <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-6 rounded-lg">
-          <p className="text-xl font-bold mb-4">🔢 対数の基本性質</p>
-          <div className="space-y-3 text-lg font-mono">
-            <p>log(A × B) = log(A) + log(B)</p>
-            <p>log(A ÷ B) = log(A) − log(B)</p>
-            <p>log(Aⁿ) = n × log(A)</p>
+          <p className="text-xl font-bold mb-4">🔢 対数の4大性質</p>
+          <div className="space-y-4">
+            <div className="bg-white p-3 rounded-lg">
+              <p className="font-mono text-lg">① log(A × B) = log(A) + log(B)</p>
+              <p className="text-sm text-gray-600 ml-4">掛け算 → 足し算</p>
+            </div>
+            <div className="bg-white p-3 rounded-lg">
+              <p className="font-mono text-lg">② log(A ÷ B) = log(A) − log(B)</p>
+              <p className="text-sm text-gray-600 ml-4">割り算 → 引き算</p>
+            </div>
+            <div className="bg-white p-3 rounded-lg">
+              <p className="font-mono text-lg">③ log(Aⁿ) = n × log(A)</p>
+              <p className="text-sm text-gray-600 ml-4">累乗 → 掛け算</p>
+            </div>
+            <div className="bg-white p-3 rounded-lg border-2 border-purple-400">
+              <p className="font-mono text-lg">④ log(ⁿ√A) = log(A) ÷ n</p>
+              <p className="text-sm text-purple-700 ml-4 font-bold">n乗根 → 割り算（超重要！）</p>
+            </div>
           </div>
         </div>
-        <div className="bg-yellow-50 p-6 rounded-lg border-l-4 border-yellow-500">
-          <p className="font-bold mb-2">例：</p>
-          <p>1000 × 1000 = ?</p>
-          <p className="mt-2">→ log(1000) + log(1000) = 3 + 3 = 6</p>
-          <p className="mt-2">→ 答え: 10⁶ = 1,000,000</p>
+      </div>
+    ),
+  },
+  {
+    title: '累乗根の威力：√10 = 0.5',
+    content: (
+      <div className="space-y-4">
+        <div className="bg-purple-50 p-6 rounded-lg">
+          <p className="text-xl font-bold mb-4">📐 ルート（累乗根）がlog算の真骨頂</p>
+          <div className="bg-white p-4 rounded-lg">
+            <p className="text-center text-2xl font-mono">log(√10) = log(10) ÷ 2 = 1 ÷ 2 = <span className="text-purple-600 font-bold">0.5</span></p>
+            <p className="text-center mt-2 text-gray-600">つまり √10 ≈ 10⁰·⁵ ≈ 3.16</p>
+          </div>
         </div>
         <div className="bg-green-50 p-4 rounded-lg">
-          <p className="font-bold">✨ これがLog算の威力！</p>
-          <p className="text-gray-700">巨大な掛け算も、足し算で済む</p>
+          <p className="font-bold mb-2">🔢 0.5刻みで世界を見る</p>
+          <div className="grid grid-cols-2 gap-2 text-center">
+            <div className="bg-white p-2 rounded"><p>10⁰ = 1</p></div>
+            <div className="bg-white p-2 rounded"><p>10⁰·⁵ ≈ 3 (√10)</p></div>
+            <div className="bg-white p-2 rounded"><p>10¹ = 10</p></div>
+            <div className="bg-white p-2 rounded"><p>10¹·⁵ ≈ 30</p></div>
+            <div className="bg-white p-2 rounded"><p>10² = 100</p></div>
+            <div className="bg-white p-2 rounded"><p>10²·⁵ ≈ 300</p></div>
+          </div>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+          <p className="font-bold">💡 覚え方</p>
+          <p className="text-gray-700 mt-2">
+            log値が<strong>+0.5</strong>で約<strong>3倍</strong>！<br/>
+            √10 ≈ 3.16 ≈ π と覚えると便利
+          </p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: '立方根・n乗根も簡単',
+    content: (
+      <div className="space-y-4">
+        <div className="bg-purple-50 p-6 rounded-lg">
+          <p className="text-xl font-bold mb-4">📐 n乗根は「÷n」するだけ</p>
+          <div className="space-y-3">
+            <div className="bg-white p-3 rounded-lg">
+              <p className="font-mono">³√10 = 10^(1/3) → log = 1÷3 ≈ <span className="font-bold text-purple-600">0.33</span></p>
+              <p className="text-sm text-gray-600">³√10 ≈ 2.15</p>
+            </div>
+            <div className="bg-white p-3 rounded-lg">
+              <p className="font-mono">³√1000 = ³√10³ → log = 3÷3 = <span className="font-bold text-purple-600">1.0</span></p>
+              <p className="text-sm text-gray-600">³√1000 = 10（確認！）</p>
+            </div>
+            <div className="bg-white p-3 rounded-lg">
+              <p className="font-mono">⁴√10000 = ⁴√10⁴ → log = 4÷4 = <span className="font-bold text-purple-600">1.0</span></p>
+              <p className="text-sm text-gray-600">⁴√10000 = 10（確認！）</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg">
+          <p className="font-bold mb-2">🌍 応用例：地球の体積から半径を求める</p>
+          <p className="text-sm">体積 V ≈ 10²¹ m³ → 半径 r = ³√(3V/4π)</p>
+          <p className="text-sm mt-1">log(V) ≈ 21 → ³√ すると log ≈ 7 → 半径 ≈ 10⁷ m = 1万km</p>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+          <p className="font-bold">💡 電卓不要で√や³√が計算できる！</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: 'グラフで理解する対数',
+    content: (
+      <div className="space-y-4">
+        <p className="text-lg">📈 log(x) のグラフを見てみよう（1 ≤ x ≤ 10）</p>
+        {/* SVG Graph of log(x) for 1 <= x <= 10 */}
+        <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+          <svg viewBox="0 0 320 220" className="w-full max-w-md mx-auto">
+            {/* Grid lines */}
+            <defs>
+              <pattern id="grid" width="30" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 30 0 L 0 0 0 20" fill="none" stroke="#e5e7eb" strokeWidth="0.5"/>
+              </pattern>
+            </defs>
+            <rect x="40" y="10" width="270" height="180" fill="url(#grid)"/>
+            
+            {/* Axes */}
+            <line x1="40" y1="190" x2="310" y2="190" stroke="#374151" strokeWidth="2"/>
+            <line x1="40" y1="10" x2="40" y2="190" stroke="#374151" strokeWidth="2"/>
+            
+            {/* X-axis labels */}
+            <text x="40" y="208" textAnchor="middle" className="text-xs fill-gray-600">1</text>
+            <text x="70" y="208" textAnchor="middle" className="text-xs fill-gray-600">2</text>
+            <text x="100" y="208" textAnchor="middle" className="text-xs fill-gray-600">3</text>
+            <text x="130" y="208" textAnchor="middle" className="text-xs fill-gray-600">4</text>
+            <text x="160" y="208" textAnchor="middle" className="text-xs fill-gray-600">5</text>
+            <text x="190" y="208" textAnchor="middle" className="text-xs fill-gray-600">6</text>
+            <text x="220" y="208" textAnchor="middle" className="text-xs fill-gray-600">7</text>
+            <text x="250" y="208" textAnchor="middle" className="text-xs fill-gray-600">8</text>
+            <text x="280" y="208" textAnchor="middle" className="text-xs fill-gray-600">9</text>
+            <text x="310" y="208" textAnchor="middle" className="text-xs fill-gray-600">10</text>
+            <text x="175" y="218" textAnchor="middle" className="text-sm fill-gray-700 font-bold">x</text>
+            
+            {/* Y-axis labels */}
+            <text x="32" y="194" textAnchor="end" className="text-xs fill-gray-600">0</text>
+            <text x="32" y="94" textAnchor="end" className="text-xs fill-gray-600">0.5</text>
+            <text x="32" y="14" textAnchor="end" className="text-xs fill-gray-600">1.0</text>
+            <text x="15" y="100" textAnchor="middle" className="text-sm fill-gray-700 font-bold" transform="rotate(-90, 15, 100)">log(x)</text>
+            
+            {/* Horizontal guide line at 0.5 */}
+            <line x1="40" y1="90" x2="310" y2="90" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="4"/>
+            
+            {/* Log curve */}
+            <path 
+              d="M 40 190 Q 55 150, 70 136 Q 85 118, 100 104 Q 115 92, 130 82 Q 145 74, 160 68 Q 175 62, 190 56 Q 205 52, 220 48 Q 235 44, 250 40 Q 265 36, 280 34 Q 295 30, 310 26"
+              fill="none" 
+              stroke="#3b82f6" 
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+            
+            {/* Key point: sqrt(10) at 0.5 */}
+            <circle cx="95" cy="90" r="6" fill="#8b5cf6"/>
+            <text x="103" y="85" className="text-xs fill-purple-600 font-bold">√10→0.5</text>
+            
+            {/* Other key points */}
+            <circle cx="70" cy="136" r="4" fill="#ef4444"/>
+            <text x="78" y="145" className="text-xs fill-red-600">2→0.3</text>
+            
+            <circle cx="160" cy="68" r="4" fill="#22c55e"/>
+            <text x="168" y="63" className="text-xs fill-green-600">5→0.7</text>
+          </svg>
+        </div>
+        <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+          <p className="font-bold">💡 ポイント</p>
+          <p className="text-gray-700 mt-2">
+            <strong>0.5のライン</strong>が√10 ≈ 3.16の位置。<br/>
+            これを基準に上下を見ると数の大きさがわかる！
+          </p>
         </div>
       </div>
     ),
@@ -419,35 +834,75 @@ const basicSlides = [
           <ConstantCard number="7" logValue="0.85" description="約0.9でOK" />
         </div>
         <div className="bg-green-50 p-6 rounded-lg mt-4">
-          <p className="font-bold mb-2">📝 応用例：</p>
-          <p>8 = 2³ → log(8) = 3 × 0.3 = <strong>0.9</strong></p>
-          <p className="mt-2">4 = 2² → log(4) = 2 × 0.3 = <strong>0.6</strong></p>
+          <p className="font-bold mb-2">📝 組み合わせで導出：</p>
+          <p>4 = 2² → log(4) = 2 × 0.3 = <strong>0.6</strong></p>
           <p className="mt-2">6 = 2×3 → log(6) = 0.3 + 0.5 = <strong>0.8</strong></p>
+          <p className="mt-2">8 = 2³ → log(8) = 3 × 0.3 = <strong>0.9</strong></p>
+          <p className="mt-2">9 = 3² → log(9) = 2 × 0.5 = <strong>1.0 (≒0.95)</strong></p>
         </div>
       </div>
     ),
   },
   {
-    title: '√10 = 0.5 の感覚',
+    title: '変換表の読み方',
     content: (
       <div className="space-y-4">
-        <div className="bg-purple-50 p-6 rounded-lg">
-          <p className="text-xl font-bold mb-4">📐 0.5刻みで世界を見る</p>
-          <p className="text-gray-700">log(√10) = 0.5 → √10 ≈ 3.16</p>
-          <div className="mt-4 space-y-2">
-            <p>10⁰ = 1</p>
-            <p>10⁰·⁵ ≈ 3.16 (≈ π)</p>
-            <p>10¹ = 10</p>
-            <p>10¹·⁵ ≈ 31.6</p>
-            <p>10² = 100</p>
+        <p className="text-lg">📊 2つの変換表を使いこなそう</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-green-50 p-4 rounded-lg">
+            <p className="font-bold text-green-800 mb-2">🔢 x → log(x) 表</p>
+            <p className="text-sm text-gray-700">数値からlog値を調べる</p>
+            <div className="mt-2 bg-white p-2 rounded text-center font-mono">
+              2.5 → <span className="text-green-600 font-bold">0.40</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">掛け算・割り算の前に使う</p>
+          </div>
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <p className="font-bold text-purple-800 mb-2">🔄 log → 10^log 表</p>
+            <p className="text-sm text-gray-700">log値から元の数値を調べる</p>
+            <div className="mt-2 bg-white p-2 rounded text-center font-mono">
+              0.40 → <span className="text-purple-600 font-bold">2.51</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">計算結果を数値に戻すとき使う</p>
           </div>
         </div>
         <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
-          <p className="font-bold">💡 覚え方</p>
-          <p className="text-gray-700 mt-2">
-            0.5刻みは「約3倍」と覚える！<br/>
-            10⁰·⁵ ≈ 3, 10¹·⁵ ≈ 30, 10²·⁵ ≈ 300...
-          </p>
+          <p className="font-bold">📝 計算の流れ</p>
+          <div className="mt-2 text-gray-700 space-y-1">
+            <p>① 各数値をlog値に変換（x → log表）</p>
+            <p>② log値で足し算・引き算・掛け算・割り算</p>
+            <p>③ 結果を数値に戻す（log → 10^log表）</p>
+          </div>
+        </div>
+        <div className="bg-gray-100 p-4 rounded-lg">
+          <p className="text-sm">👉 リファレンスページで両方の変換表を確認できます！</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: '実践例：複雑な計算を一発で',
+    content: (
+      <div className="space-y-4">
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <p className="font-bold text-lg mb-2">📝 例題: √(200 × 50) = ?</p>
+        </div>
+        <div className="bg-white border-2 border-blue-200 p-4 rounded-lg">
+          <p className="font-bold mb-2">Step 1: log値に変換</p>
+          <p className="font-mono">log(200) = log(2×100) = 0.3 + 2 = 2.3</p>
+          <p className="font-mono">log(50) = log(5×10) = 0.7 + 1 = 1.7</p>
+        </div>
+        <div className="bg-white border-2 border-blue-200 p-4 rounded-lg">
+          <p className="font-bold mb-2">Step 2: 掛け算 → 足し算</p>
+          <p className="font-mono">log(200 × 50) = 2.3 + 1.7 = 4.0</p>
+        </div>
+        <div className="bg-white border-2 border-purple-200 p-4 rounded-lg">
+          <p className="font-bold mb-2">Step 3: √ → ÷2</p>
+          <p className="font-mono">log(√(200×50)) = 4.0 ÷ 2 = <span className="text-purple-600 font-bold">2.0</span></p>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg">
+          <p className="font-bold">✅ 答え: 10² = <span className="text-2xl text-green-600">100</span></p>
+          <p className="text-sm text-gray-600 mt-1">（確認: √10000 = 100 ✓）</p>
         </div>
       </div>
     ),
@@ -459,8 +914,8 @@ const basicSlides = [
         <div className="bg-blue-50 p-4 rounded-lg">
           <p className="text-lg font-bold mb-2">1.0〜9.9のlog値を一覧表示</p>
           <p className="text-sm text-gray-600">
-            色分け: <span className="text-red-600 font-bold">赤</span>=切り捨て（真値が大きい）、
-            <span className="text-blue-600 font-bold">青</span>=切り上げ（真値が小さい）、
+            色分け: <span className="text-red-600 font-bold">赤↑</span>=真値は上（切り捨て）、
+            <span className="text-blue-600 font-bold">青↓</span>=真値は下（切り上げ）、
             <span className="text-gray-900 font-bold">黒</span>=ほぼ正確
           </p>
         </div>
@@ -1180,6 +1635,304 @@ const historySlides = [
           <p className="font-bold">💡 ポイント</p>
           <p>Logが1増えると10倍の時間スケール！</p>
           <p>人類の歴史(log 5)から宇宙の歴史(log 10)まで、たった5桁の差</p>
+        </div>
+      </div>
+    ),
+  },
+];
+
+// ==========================================
+// 確率とe スライド
+// ==========================================
+const probabilitySlides = [
+  {
+    title: '確率計算の秘密兵器「e」',
+    content: (
+      <div className="space-y-4">
+        <p className="text-lg">
+          確率計算で登場する <strong>e ≈ 2.718</strong>（自然対数の底）<br/>
+          なぜこの不思議な数が重要なのでしょうか？
+        </p>
+        <div className="bg-rose-50 p-6 rounded-lg">
+          <p className="text-xl font-bold text-rose-800 mb-4">🎯 今回覚える2つの数</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white p-4 rounded-lg text-center">
+              <p className="text-3xl font-bold text-rose-600">0.43</p>
+              <p className="text-sm">log₁₀(e)</p>
+              <p className="text-xs text-gray-500 mt-1">ln → log₁₀ 変換係数</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg text-center">
+              <p className="text-3xl font-bold text-rose-600">2.3</p>
+              <p className="text-sm">ln(10)</p>
+              <p className="text-xs text-gray-500 mt-1">log₁₀ → ln 変換係数</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+          <p className="font-bold">💡 関係式</p>
+          <p className="font-mono mt-2">0.43 × 2.3 ≈ 1</p>
+          <p className="text-sm text-gray-600">この2つは互いの逆数！</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: 'ガチャ確率の計算',
+    content: (
+      <div className="space-y-4">
+        <p className="text-lg">🎰 「1%のガチャを50%で当てるには何回引く？」</p>
+        <div className="bg-rose-50 p-6 rounded-lg">
+          <p className="font-bold mb-3">📝 公式</p>
+          <div className="bg-white p-4 rounded-lg font-mono text-center">
+            <p className="text-lg">n = ln(2) / p</p>
+            <p className="text-sm text-gray-600 mt-2">50%で当てる回数 ≈ <strong>0.69 / p</strong></p>
+          </div>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg">
+          <p className="font-bold mb-2">🔢 具体例（確率1% = 0.01）</p>
+          <p>n = 0.69 / 0.01 = <strong>69回</strong></p>
+          <p className="text-sm text-gray-600 mt-2">log(69) ≈ 1.84</p>
+        </div>
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <p className="font-bold">✨ 覚えやすい目安</p>
+          <table className="w-full mt-2 text-sm">
+            <tbody>
+              <tr><td>確率1%</td><td>→</td><td className="font-bold">69回で50%</td></tr>
+              <tr><td>確率0.1%</td><td>→</td><td className="font-bold">693回で50%</td></tr>
+              <tr><td>確率p</td><td>→</td><td className="font-bold">0.7/p 回で50%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: 'eの本質：「1/p回引くと63%」',
+    content: (
+      <div className="space-y-4">
+        <div className="bg-rose-50 p-6 rounded-lg">
+          <p className="text-xl font-bold text-rose-800 mb-4">🔑 eが現れる理由</p>
+          <p>確率 p のガチャを <strong>1/p 回</strong>引くと...</p>
+          <div className="bg-white p-4 rounded-lg mt-3">
+            <p className="text-center">
+              1回も当たらない確率 = (1-p)^(1/p) → <span className="text-2xl font-bold text-rose-600">1/e ≈ 37%</span>
+            </p>
+            <p className="text-center mt-2">
+              少なくとも1回当たる確率 = 1 - 1/e ≈ <span className="text-2xl font-bold text-green-600">63%</span>
+            </p>
+          </div>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+          <p className="font-bold">💡 例：1%ガチャを100回</p>
+          <p className="mt-2">100回引くと「少なくとも1回当たる」確率は約63%</p>
+          <p className="text-sm text-gray-600">直感より低い！これがeの魔法</p>
+        </div>
+        <div className="bg-gray-100 p-4 rounded-lg">
+          <p className="font-bold">📊 log値で覚える</p>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className="text-center">
+              <p className="text-sm">1/e ≈ 0.37</p>
+              <p className="font-mono">log = -0.43</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm">1-1/e ≈ 0.63</p>
+              <p className="font-mono">log = -0.20</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: '確率目標と必要回数',
+    content: (
+      <div className="space-y-4">
+        <p className="text-lg">🎯 目標確率を達成するのに必要な試行回数</p>
+        <div className="bg-rose-50 p-4 rounded-lg">
+          <p className="font-bold mb-3">📝 一般公式（確率pのガチャ）</p>
+          <div className="bg-white p-3 rounded font-mono text-sm">
+            n = ln(1/(1-目標確率)) / p
+          </div>
+        </div>
+        <div className="bg-white border-2 border-rose-200 rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-rose-100">
+              <tr>
+                <th className="p-2">目標確率</th>
+                <th className="p-2">係数</th>
+                <th className="p-2">1%ガチャ</th>
+                <th className="p-2">log(回数)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t"><td className="p-2 text-center">50%</td><td className="p-2 text-center">0.69/p</td><td className="p-2 text-center font-bold">69回</td><td className="p-2 text-center">1.84</td></tr>
+              <tr className="border-t bg-gray-50"><td className="p-2 text-center">63%</td><td className="p-2 text-center">1/p</td><td className="p-2 text-center font-bold">100回</td><td className="p-2 text-center">2.00</td></tr>
+              <tr className="border-t"><td className="p-2 text-center">90%</td><td className="p-2 text-center">2.3/p</td><td className="p-2 text-center font-bold">230回</td><td className="p-2 text-center">2.36</td></tr>
+              <tr className="border-t bg-gray-50"><td className="p-2 text-center">95%</td><td className="p-2 text-center">3/p</td><td className="p-2 text-center font-bold">300回</td><td className="p-2 text-center">2.48</td></tr>
+              <tr className="border-t"><td className="p-2 text-center">99%</td><td className="p-2 text-center">4.6/p</td><td className="p-2 text-center font-bold">460回</td><td className="p-2 text-center">2.66</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-yellow-50 p-3 rounded-lg">
+          <p className="font-bold">💡 95%は50%の約4.3倍の試行が必要！</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: 'log(1+x)の近似',
+    content: (
+      <div className="space-y-4">
+        <div className="bg-rose-50 p-6 rounded-lg">
+          <p className="text-xl font-bold text-rose-800 mb-4">📐 |x| ≪ 1 のときの近似</p>
+          <div className="bg-white p-4 rounded-lg">
+            <p className="font-mono text-lg text-center">ln(1+x) ≈ x</p>
+            <p className="font-mono text-lg text-center mt-2">log₁₀(1+x) ≈ 0.43x</p>
+          </div>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg">
+          <p className="font-bold mb-2">🔢 なぜ便利？</p>
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            <li>1%増加 (x=0.01) → log₁₀(1.01) ≈ 0.0043</li>
+            <li>5%増加 (x=0.05) → log₁₀(1.05) ≈ 0.021</li>
+            <li>10%増加 (x=0.1) → log₁₀(1.1) ≈ 0.043</li>
+          </ul>
+        </div>
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <p className="font-bold">✨ 応用：複利計算</p>
+          <p className="text-sm mt-2">
+            年利r%でn年後に2倍になる年数:<br/>
+            (1+r)ⁿ = 2 → n × ln(1+r) = ln(2)<br/>
+            n ≈ 0.69/r = <strong>69/r(%)年</strong>
+          </p>
+          <p className="text-sm text-gray-600 mt-1">
+            例: 年利5% → 69/5 ≈ 14年で2倍
+          </p>
+        </div>
+        <div className="bg-yellow-50 p-3 rounded-lg">
+          <p className="font-bold">💡 「72の法則」</p>
+          <p className="text-sm">72÷年利(%)=2倍になる年数（実用的な近似）</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: '誕生日のパラドックス',
+    content: (
+      <div className="space-y-4">
+        <p className="text-lg">🎂 何人いれば誕生日が被る確率が50%超える？</p>
+        <div className="bg-rose-50 p-6 rounded-lg">
+          <p className="text-6xl font-bold text-center text-rose-600">23人</p>
+          <p className="text-center text-gray-600 mt-2">意外と少ない！</p>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg">
+          <p className="font-bold mb-2">📊 人数と確率</p>
+          <div className="grid grid-cols-3 gap-2 text-center text-sm">
+            <div className="bg-white p-2 rounded">
+              <p className="font-bold">20人</p>
+              <p>約41%</p>
+            </div>
+            <div className="bg-white p-2 rounded border-2 border-rose-400">
+              <p className="font-bold">23人</p>
+              <p>約50%</p>
+            </div>
+            <div className="bg-white p-2 rounded">
+              <p className="font-bold">50人</p>
+              <p>約97%</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <p className="font-bold">📐 近似公式</p>
+          <p className="font-mono text-center mt-2">n ≈ 1.2 × √(日数)</p>
+          <p className="text-sm text-gray-600 text-center mt-1">
+            365日 → 1.2 × √365 ≈ 1.2 × 19 ≈ 23人
+          </p>
+        </div>
+        <div className="bg-yellow-50 p-3 rounded-lg">
+          <p className="font-bold">💡 log値</p>
+          <p>23人 → log(23) ≈ 1.36</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: '誕生日問題の応用：ハッシュ衝突',
+    content: (
+      <div className="space-y-4">
+        <p className="text-lg">💻 セキュリティ・IT分野で超重要！</p>
+        <div className="bg-rose-50 p-4 rounded-lg">
+          <p className="font-bold mb-2">📐 衝突が50%になるデータ数</p>
+          <div className="bg-white p-3 rounded font-mono text-center">
+            n ≈ 1.2 × √N（Nは可能な値の総数）
+          </div>
+        </div>
+        <div className="bg-white border-2 border-rose-200 rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-rose-100">
+              <tr>
+                <th className="p-2">空間サイズ</th>
+                <th className="p-2">50%衝突</th>
+                <th className="p-2">log(回数)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t"><td className="p-2">365 (誕生日)</td><td className="p-2 font-bold">23</td><td className="p-2">1.36</td></tr>
+              <tr className="border-t bg-gray-50"><td className="p-2">2¹⁶ (65536)</td><td className="p-2 font-bold">300</td><td className="p-2">2.48</td></tr>
+              <tr className="border-t"><td className="p-2">2³² (43億)</td><td className="p-2 font-bold">77,000</td><td className="p-2">4.89</td></tr>
+              <tr className="border-t bg-gray-50"><td className="p-2">2⁶⁴</td><td className="p-2 font-bold">5×10⁹</td><td className="p-2">9.7</td></tr>
+              <tr className="border-t"><td className="p-2">2¹²⁸</td><td className="p-2 font-bold">2×10¹⁹</td><td className="p-2">19.3</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-yellow-50 p-3 rounded-lg">
+          <p className="font-bold">💡 セキュリティへの示唆</p>
+          <p className="text-sm">32bitハッシュは約8万件で危険！128bit以上を使おう</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: '確率のlog値まとめ',
+    content: (
+      <div className="space-y-4">
+        <p className="text-lg">🎯 確率計算で使うlog値をまとめよう！</p>
+        <div className="bg-rose-50 p-4 rounded-lg">
+          <p className="font-bold mb-3">📊 基本定数</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white p-3 rounded text-center">
+              <p className="text-2xl font-bold text-rose-600">0.43</p>
+              <p className="text-sm">log₁₀(e)</p>
+            </div>
+            <div className="bg-white p-3 rounded text-center">
+              <p className="text-2xl font-bold text-rose-600">2.3</p>
+              <p className="text-sm">ln(10)</p>
+            </div>
+            <div className="bg-white p-3 rounded text-center">
+              <p className="text-2xl font-bold text-blue-600">-0.43</p>
+              <p className="text-sm">log₁₀(1/e) ≈ 37%</p>
+            </div>
+            <div className="bg-white p-3 rounded text-center">
+              <p className="text-2xl font-bold text-green-600">-0.20</p>
+              <p className="text-sm">log₁₀(1-1/e) ≈ 63%</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg">
+          <p className="font-bold mb-2">🎰 ガチャ計算早見表（確率p）</p>
+          <div className="text-sm space-y-1">
+            <p>• 50%達成: <strong>0.7/p 回</strong></p>
+            <p>• 63%達成: <strong>1/p 回</strong></p>
+            <p>• 95%達成: <strong>3/p 回</strong></p>
+          </div>
+        </div>
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <p className="font-bold mb-2">🎂 誕生日問題</p>
+          <p className="text-sm">n ≈ 1.2√日数 で50%衝突</p>
+        </div>
+        <div className="bg-yellow-50 p-3 rounded-lg">
+          <p className="font-bold">💡 複利計算</p>
+          <p className="text-sm">72÷年利(%) = 2倍になる年数</p>
         </div>
       </div>
     ),

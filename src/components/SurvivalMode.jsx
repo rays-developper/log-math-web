@@ -131,8 +131,11 @@ const SurvivalMode = ({ onBack }) => {
 
     const settings = difficultySettings[difficulty];
     const adjustedTolerance = currentProblem.tolerance * settings.toleranceMultiplier;
-    const difference = Math.abs(answer - currentProblem.targetLog);
+    const rawDifference = answer - currentProblem.targetLog; // 符号付き差分
+    const difference = Math.abs(rawDifference);
     const isCorrect = difference <= adjustedTolerance;
+    // パーセント誤差を計算 (log差分からパーセントへ: 10^diff - 1)
+    const percentError = Math.round((Math.pow(10, difference) - 1) * 100);
 
     if (isCorrect) {
       // 正解！
@@ -151,6 +154,8 @@ const SurvivalMode = ({ onBack }) => {
         type: 'success',
         message: '正解！',
         difference,
+        rawDifference,
+        percentError,
         scoreGained: totalScore,
         breakdown: { baseScore, streakBonus, accuracyBonus }
       });
@@ -168,6 +173,8 @@ const SurvivalMode = ({ onBack }) => {
         type: 'wrong',
         message: `不正解... 正解は ${currentProblem.targetLog}`,
         difference,
+        rawDifference,
+        percentError,
         errorLost: errorPenalty.toFixed(1)
       });
 
@@ -506,7 +513,7 @@ const SurvivalMode = ({ onBack }) => {
                   <div>
                     <p className="text-xl font-bold text-green-900">{feedback.message}</p>
                     <p className="text-green-700">
-                      +{feedback.scoreGained}pt (基本{feedback.breakdown.baseScore} + 連続{feedback.breakdown.streakBonus} + 精度{feedback.breakdown.accuracyBonus})
+                      +{feedback.scoreGained}pt ({feedback.percentError}%の誤差 / {feedback.rawDifference >= 0 ? '+' : ''}{feedback.rawDifference.toFixed(2)})
                     </p>
                   </div>
                 </div>
@@ -518,7 +525,7 @@ const SurvivalMode = ({ onBack }) => {
                   <div>
                     <p className="text-xl font-bold text-red-900">{feedback.message}</p>
                     <p className="text-red-700">
-                      残機 -{feedback.errorLost} (誤差: {feedback.difference.toFixed(2)})
+                      残機 -{feedback.errorLost} ({feedback.percentError}%の誤差 / {feedback.rawDifference >= 0 ? '+' : ''}{feedback.rawDifference.toFixed(2)})
                     </p>
                   </div>
                 </div>

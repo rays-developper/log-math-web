@@ -756,6 +756,154 @@ export const PROBLEMS = [
     explanation: "【計算式】\n9×10⁶m ÷ (3×10⁸ × 2/3)m/s = 9×10⁶ ÷ 2×10⁸ = 0.045秒 = 45ms\n\nlog(45) ≈ 1.65\n\n💡 太平洋横断で約45ms（往復90ms）の遅延",
     unit: "ms"
   },
+  
+  // ==========================================
+  // 確率問題（eの世界）
+  // ==========================================
+  {
+    id: 61,
+    level: 2,
+    category: 'Probability',
+    title: "1%ガチャを50%で当てる",
+    description: "確率1%のガチャを50%の確率で少なくとも1回当てるには、何回引く必要がある？",
+    targetLog: 1.84,
+    tolerance: 0.15,
+    hint: "ln(2)/p ≈ 0.69/0.01、ln(2)≈0.69",
+    explanation: "【計算式】\n確率pのガチャをn回引いて「少なくとも1回当たる」確率 = 1-(1-p)ⁿ\n\n50%になる条件: (1-p)ⁿ = 0.5\nn = ln(0.5)/ln(1-p) ≈ ln(2)/p = 0.69/0.01 = 69回\n\nlog(69) ≈ 1.84\n\n💡 覚え方: 「確率pなら0.7/p回で50%」",
+    unit: "回"
+  },
+  {
+    id: 62,
+    level: 2,
+    category: 'Probability',
+    title: "1%ガチャを63%で当てる",
+    description: "確率1%のガチャを約63%の確率で少なくとも1回当てるには、何回引く必要がある？",
+    targetLog: 2.00,
+    tolerance: 0.1,
+    hint: "63% ≈ 1-1/e、回数は1/pに等しい",
+    explanation: "【計算式】\n確率pのガチャをn=1/p回引くと、当たらない確率は:\n(1-p)^(1/p) → e^(-1) ≈ 0.37（pが小さい時）\n\nよって「少なくとも1回当たる」確率 ≈ 1-1/e ≈ 63%\n\n1/0.01 = 100回 → log(100) = 2.00\n\n💡 覚え方: 「1/p回で約63%」これがeの本質！",
+    unit: "回"
+  },
+  {
+    id: 63,
+    level: 2,
+    category: 'Probability',
+    title: "0.1%ガチャを50%で当てる",
+    description: "確率0.1%のSSRガチャを50%の確率で当てるには、何回引く必要がある？",
+    targetLog: 2.84,
+    tolerance: 0.15,
+    hint: "ln(2)/p = 0.69/0.001",
+    explanation: "【計算式】\nn = ln(2)/p = 0.69/0.001 = 690回\n\nlog(690) ≈ 2.84\n\n💡 0.1%なら693回で50%、約700回が目安",
+    unit: "回"
+  },
+  {
+    id: 64,
+    level: 3,
+    category: 'Probability',
+    title: "1%ガチャを95%で当てる",
+    description: "確率1%のガチャを95%の確率で少なくとも1回当てるには、何回引く必要がある？",
+    targetLog: 2.48,
+    tolerance: 0.15,
+    hint: "ln(20)/p ≈ 3/0.01、95%達成には50%の約4.3倍",
+    explanation: "【計算式】\n95%の条件: (1-p)ⁿ = 0.05\nn = ln(0.05)/ln(0.99) ≈ ln(20)/0.01 ≈ 3/0.01 = 300回\n\nlog(300) ≈ 2.48\n\n💡 ln(20) ≈ 3、95%は50%の約4.3倍の試行が必要",
+    unit: "回"
+  },
+  {
+    id: 65,
+    level: 2,
+    category: 'Probability',
+    title: "誕生日問題：50%達成",
+    description: "クラスに何人いれば、同じ誕生日のペアが50%以上の確率で存在する？",
+    targetLog: 1.36,
+    tolerance: 0.1,
+    hint: "約√365×1.2 ≈ 23人、√365≈19",
+    explanation: "【計算式】\n誕生日問題の近似公式: n ≈ √(2×365×ln(2)) ≈ √(506) ≈ 22.5\n\n正確には23人で約50.7%\nlog(23) ≈ 1.36\n\n💡 目安は「√日数」の1.2倍程度。365日なら√365≈19、×1.2で約23人",
+    unit: "人"
+  },
+  {
+    id: 66,
+    level: 3,
+    category: 'Probability',
+    title: "誕生日問題：97%達成",
+    description: "クラスに何人いれば、同じ誕生日のペアがほぼ確実（97%以上）に存在する？",
+    targetLog: 1.70,
+    tolerance: 0.1,
+    hint: "50人で約97%",
+    explanation: "【計算式】\n50人いると、全員の誕生日が異なる確率は:\n365/365 × 364/365 × ... × 316/365 ≈ 3%\n\nよって同じ誕生日のペアが存在する確率 ≈ 97%\nlog(50) ≈ 1.70\n\n💡 50人のクラスならほぼ確実に誕生日かぶりあり！",
+    unit: "人"
+  },
+  {
+    id: 67,
+    level: 3,
+    category: 'Probability',
+    title: "ハッシュ衝突確率",
+    description: "100万個のランダムID（32bit空間）を生成したとき、衝突確率が50%になるID数は約何個？（誕生日問題の応用）",
+    targetLog: 4.86,
+    tolerance: 0.2,
+    hint: "√(2³² × ln(2)) ≈ √(3×10⁹) ≈ 77000",
+    explanation: "【計算式】\n誕生日問題の公式: n ≈ √(2N×ln(2)) ≈ 1.2×√N\n\n32bit空間: N = 2³² ≈ 4×10⁹\nn ≈ 1.2×√(4×10⁹) ≈ 1.2×63000 ≈ 77000\n\nlog(77000) ≈ 4.89\n\n💡 32bitハッシュは約7.7万件で50%衝突リスク！",
+    unit: "個"
+  },
+  {
+    id: 68,
+    level: 2,
+    category: 'Probability',
+    title: "ln(10)の値",
+    description: "自然対数 ln(10) の値は約いくつ？（logからlnへの変換に使う）",
+    targetLog: 0.36,
+    tolerance: 0.1,
+    hint: "ln(10) = 1/log₁₀(e) ≈ 1/0.43",
+    explanation: "【計算式】\nln(10) = 1/log₁₀(e) = 1/0.4343 ≈ 2.303\n\nlog(2.303) ≈ 0.36\n\n💡 log₁₀(x) → ln(x) は ×2.3\n💡 ln(x) → log₁₀(x) は ×0.43 (= log₁₀(e))",
+    unit: ""
+  },
+  {
+    id: 69,
+    level: 3,
+    category: 'Probability',
+    title: "複利計算：元本2倍",
+    description: "年利5%の複利で元本を2倍にするには何年かかる？",
+    targetLog: 1.15,
+    tolerance: 0.15,
+    hint: "ln(2)/r = 0.69/0.05 ≈ 14年（72の法則）",
+    explanation: "【計算式】\n複利で2倍: (1+r)ⁿ = 2\nn = ln(2)/ln(1+r) ≈ ln(2)/r = 0.69/0.05 = 13.8年\n\nlog(14) ≈ 1.15\n\n💡 72の法則: 72÷年利(%)=2倍になる年数\n   72÷5=14.4年、ほぼ一致！",
+    unit: "年"
+  },
+  {
+    id: 70,
+    level: 4,
+    category: 'Probability',
+    title: "20人クラスの誕生日問題",
+    description: "20人のクラスで同じ誕生日のペアがいる確率は約何%？",
+    targetLog: 1.62,
+    tolerance: 0.15,
+    hint: "1 - (365!/345!)/(365^20)、約41%",
+    explanation: "【計算式】\n全員異なる確率 = 365/365 × 364/365 × ... × 346/365\n≈ e^(-n(n-1)/2/365) ≈ e^(-190/365) ≈ e^(-0.52) ≈ 0.59\n\n同じ誕生日ペアがいる確率 ≈ 1 - 0.59 = 0.41 = 41%\n\nlog(41) ≈ 1.61\n\n💡 20人でも約4割の確率！意外と高い",
+    unit: "%"
+  },
+  {
+    id: 71,
+    level: 3,
+    category: 'Probability',
+    title: "ポアソン分布：期待値10で0回",
+    description: "平均10回起きる事象が1回も起きない確率は約何%？（10^-何%で答える）",
+    targetLog: -3.34,
+    tolerance: 0.2,
+    hint: "e^(-10) ≈ 10^(-4.3)、log₁₀(e)≈0.43",
+    explanation: "【計算式】\nポアソン分布: P(0) = e^(-λ) = e^(-10)\n\nlog₁₀(e^(-10)) = -10 × log₁₀(e) = -10 × 0.43 = -4.3\n\n確率 ≈ 10^(-4.3) ≈ 0.00005 ≈ 0.005%\n\n💡 10^(-4.3)% → 実質ありえない事象！",
+    unit: "(log₁₀確率)"
+  },
+  {
+    id: 72,
+    level: 2,
+    category: 'Probability',
+    title: "log(1+x)の近似",
+    description: "x=0.1のとき、log₁₀(1+x)は約いくつ？（|x|<<1での近似を使う）",
+    targetLog: -1.36,
+    tolerance: 0.15,
+    hint: "log₁₀(1+x) ≈ x × log₁₀(e) ≈ 0.43x",
+    explanation: "【計算式】\n|x|<<1 のとき ln(1+x) ≈ x\nよって log₁₀(1+x) ≈ x × log₁₀(e) ≈ 0.43x\n\nx=0.1 → log₁₀(1.1) ≈ 0.43 × 0.1 = 0.043\n\nlog(0.043) ≈ -1.37\n\n（正確値: log₁₀(1.1) = 0.0414）\n\n💡 「1+x のlog ≈ 0.4x」で概算できる！",
+    unit: ""
+  },
 ];
 
 // レベル定義
@@ -780,5 +928,6 @@ export const PROBLEM_CATEGORIES = [
   { id: 'History', name: '歴史', icon: '📜' },
   { id: 'Physics', name: '物理', icon: '🔬' },
   { id: 'Daily', name: '日常', icon: '🏠' },
+  { id: 'Probability', name: '確率', icon: '🎲' },
 ];
 

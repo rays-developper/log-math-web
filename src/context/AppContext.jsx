@@ -20,6 +20,8 @@ export const AppProvider = ({ children }) => {
       totalCorrect: 0,
       currentLevel: 1,
       survivalRecord: null,
+      completedChapters: [],
+      chapterProgress: {},
     };
   });
 
@@ -48,6 +50,56 @@ export const AppProvider = ({ children }) => {
     });
   };
 
+  // 章を完了としてマーク
+  const markChapterCompleted = (chapterId) => {
+    setUserProgress(prev => ({
+      ...prev,
+      completedChapters: [...new Set([...prev.completedChapters, chapterId])],
+      chapterProgress: {
+        ...prev.chapterProgress,
+        [chapterId]: {
+          completed: true,
+          completedAt: new Date().toISOString(),
+        },
+      },
+    }));
+  };
+
+  // 章の進捗を更新（途中のスライド位置を保存）
+  const updateChapterProgress = (chapterId, slideIndex, totalSlides) => {
+    setUserProgress(prev => ({
+      ...prev,
+      chapterProgress: {
+        ...prev.chapterProgress,
+        [chapterId]: {
+          ...prev.chapterProgress?.[chapterId],
+          lastSlide: slideIndex,
+          totalSlides,
+          lastAccessedAt: new Date().toISOString(),
+        },
+      },
+    }));
+  };
+
+  // 章が完了しているかチェック
+  const isChapterCompleted = (chapterId) => {
+    return userProgress.completedChapters?.includes(chapterId) || false;
+  };
+
+  // 学習進捗の概要を取得
+  const getLearningProgress = (chapters) => {
+    const completedCount = userProgress.completedChapters?.length || 0;
+    const totalChapters = chapters?.length || 10;
+    const percentage = Math.round((completedCount / totalChapters) * 100);
+    
+    return {
+      completedCount,
+      totalChapters,
+      percentage,
+      completedChapters: userProgress.completedChapters || [],
+    };
+  };
+
   const getUserLevel = () => {
     const solvedCount = userProgress.solvedProblems.length;
     let userLevel = USER_LEVELS[0];
@@ -73,6 +125,8 @@ export const AppProvider = ({ children }) => {
       totalCorrect: 0,
       currentLevel: 1,
       survivalRecord: null,
+      completedChapters: [],
+      chapterProgress: {},
     });
   };
 
@@ -84,6 +138,10 @@ export const AppProvider = ({ children }) => {
         userProgress,
         markProblemSolved,
         updateSurvivalRecord,
+        markChapterCompleted,
+        updateChapterProgress,
+        isChapterCompleted,
+        getLearningProgress,
         getUserLevel,
         resetProgress,
       }}
